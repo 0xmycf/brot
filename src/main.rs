@@ -4,6 +4,7 @@ use std::{
     fmt::{Display, Write},
     fs,
     io::{stdin, Read},
+    process::exit,
 };
 
 #[repr(u8)]
@@ -102,7 +103,11 @@ fn interpret(prog: Vec<u8>) {
                 Instr::Minus => cell[ptr] -= 1,
 
                 Instr::SLeft => match ptr.checked_sub(1) {
-                    None => panic!("ptr went negative"),
+                    None => {
+                        eprintln!("ptr went negative at {}:{}", ctx.line, ctx.col);
+                        exit(1);
+                    }
+
                     Some(x) => {
                         ptr = x;
                     }
@@ -132,9 +137,13 @@ fn interpret(prog: Vec<u8>) {
                 }
 
                 Instr::Comma => {
-                    stdin
-                        .read_exact(&mut read_buf)
-                        .expect("Error while reading a single from stdin");
+                    if let Err(err) = stdin.read_exact(&mut read_buf) {
+                        eprintln!(
+                            "Error ({}) while reading a single from stdin at {}:{}",
+                            err, ctx.line, ctx.col
+                        );
+                        exit(1);
+                    };
                     cell[ptr] = read_buf[0] as i32;
                 }
                 Instr::Dot => {
@@ -155,9 +164,14 @@ fn interpret(prog: Vec<u8>) {
     }
 }
 
+/**
+    Exit 0 -- all fine
+    Exit 1 -- Some error occured (see stderr)
+*/
 fn main() {
     let file_name = env::args().nth(1).unwrap_or("./data/file.test".to_string());
     let file = fs::read(file_name).expect("Error while reading the file");
 
     interpret(file);
+    exit(0);
 }
