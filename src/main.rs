@@ -1,9 +1,9 @@
 use std::{
     char::from_u32,
     env,
-    fmt::{Display, Write},
+    fmt::Display,
     fs,
-    io::{stdin, Read},
+    io::{stdin, stdout, Read, Write},
     process::exit,
 };
 
@@ -36,7 +36,7 @@ impl From<Instr> for char {
 
 impl Display for Instr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_char((*self).into())
+        std::fmt::Write::write_char(f, (*self).into())
     }
 }
 
@@ -98,6 +98,7 @@ fn interpret(prog: Vec<u8>) {
     while idx < prog.len() {
         let b = prog[idx];
         if let Ok(instr) = b.try_into() {
+            eprintln!("[DEBUG] {} -- {} at {}:{}", b, instr, ctx.line, ctx.col);
             match instr {
                 Instr::Plus => cell[ptr] += 1,
                 Instr::Minus => cell[ptr] -= 1,
@@ -114,29 +115,56 @@ fn interpret(prog: Vec<u8>) {
                 },
                 Instr::SRight => {
                     ptr += 1;
-                    if cell.len() - 1 <= ptr {
+                    if ptr == cell.len() {
                         cell.push(0);
                     }
+                    // eprintln!("[DEBUG] shifting {} to {} total len {}", ptr-1, ptr, cell.len());
                 }
 
                 Instr::OBrack => {
+                    // eprintln!("[DEBUG]: ptr {}, len {}, vec {:?}", ptr, cell.len(), cell);
                     if cell[ptr] == 0 {
-                        while idx < prog.len() && prog[idx] != b']' {
-                            idx += 1;
+                        idx += 1;
+                        let mut counter = 1;
+                        while counter > 1 {
+                            if prog[idx] == b'[' {
+                                counter += 1;
+                            } else if prog[idx] == b']' {
+                                counter -= 1;
+                            }
+                            if counter != 0 {
+                                idx += 1;
+                            }
                         }
                         continue;
                     }
                 }
                 Instr::CBrack => {
                     if cell[ptr] != 0 {
-                        while idx < prog.len() && prog[idx] != b'[' {
-                            idx -= 1;
+                        idx -= 1;
+                        let mut counter = 1;
+                        while counter > 0 {
+                            if prog[idx] == b']' {
+                                counter += 1;
+                            } else if prog[idx] == b'[' {
+                                counter -= 1;
+                            }
+                            if counter != 0 {
+                                idx -= 1;
+                            }
                         }
                         continue;
                     }
                 }
 
                 Instr::Comma => {
+                    print!("type: ");
+                    if let Err(err) = stdout().flush() {
+                        eprintln!(
+                            "Error ({}) while flushing the stdout at {}:{}",
+                            err, ctx.line, ctx.col
+                        );
+                    };
                     if let Err(err) = stdin.read_exact(&mut read_buf) {
                         eprintln!(
                             "Error ({}) while reading a single from stdin at {}:{}",
@@ -147,7 +175,9 @@ fn interpret(prog: Vec<u8>) {
                     cell[ptr] = read_buf[0] as i32;
                 }
                 Instr::Dot => {
-                    let value = if cell[ptr] < 32 {
+                    let value = if cell[ptr] == 10 {
+                        "\n".to_string()
+                    } else if cell[ptr] < 32 {
                         cell[ptr].to_string()
                     } else {
                         from_u32(cell[ptr] as u32)
@@ -159,7 +189,7 @@ fn interpret(prog: Vec<u8>) {
             }
         } else { /* Do nothing */
         }
-        ctx.advance(b);
+        ctx.advance(b); // this is buggy, cause we can also move backwards
         idx += 1;
     }
 }
