@@ -2,7 +2,8 @@
 
 A [Brainf*ck](https://en.wikipedia.org/wiki/Brainfuck) interpreter.
 
-# Known bugs
+## Example programas
 
-Nested `[]` are currently not implemented.
+There are multiple examples in the `./examples/` directory.
 
+A few of these are taken verbatim from [brainfuck.org](https://brainfuck.org/).

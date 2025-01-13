@@ -10,7 +10,11 @@
     {
       devShell = pkgs.mkShell {
         buildInputs = with pkgs; [
-          rustc cargo rustfmt cargo-modules
+          # stuff i use inside rust / cargo
+          rustc cargo rustfmt 
+          # linter
+          clippy
+          # lsp stuff
           rust-analyzer
         ];
       };
