@@ -189,7 +189,8 @@ pub mod parser {
             if token.is_loop_beginning() {
                 let mut buf = vec![];
                 let mut depth = 1;
-                for tkn2 in peek.by_ref() { // thanks clippy
+                for tkn2 in peek.by_ref() {
+                    // thanks clippy
                     if tkn2 == Token::LEFT_BRACKET {
                         depth += 1;
                     } else if tkn2 == Token::RIGHT_BRACKET {
@@ -407,9 +408,9 @@ pub mod interpreter {
     }
 
     fn format_for_ttv(value: i32) -> String {
-        match char::from_u32(value as u32) {
-            Some(c) => format!("{}", c),
-            None => format!("{}", value),
+        match u8::try_from(value) {
+            Ok(u) => format!("{}", ascii::escape_default(u)),
+            Err(_) => format!("{}", value),
         }
     }
 
